@@ -208,32 +208,23 @@ def _parse_name(app_data, fallback: str) -> str:
 
 def _get_hops(destination_hash: bytes, announce_packet_hash=None) -> int:
     """
-    Determine the hop count for a destination hash.
+    Determine the hop count for a destination hash using the RNS routing table.
 
-    When running as a shared-instance client, the RNS transport tables are
-    owned by rnsd and are not directly accessible here. As a workaround, we
-    query the rnsd systemd journal for the most recent log line that records
-    the hop count for this destination hash. Falls back to 1 if not found.
+    RNS.Transport.hops_to() works correctly in shared-instance client mode —
+    the transport state is synchronised from rnsd and is queryable here.
+
+    RNS.Transport.PATHFINDER_M (128) is the sentinel value meaning "no known
+    path". We treat that as 1 (assume direct) rather than showing it as 128.
+    Clamp the result to [0, 6] to avoid spurious large values.
     """
-    import subprocess
-    hash_hex = destination_hash.hex()
     try:
-        result = subprocess.run(
-            ["journalctl", "-u", "rnsd", "-n", "200", "--no-pager",
-             "--output=short-unix"],
-            capture_output=True, text=True, timeout=2
-        )
-        import re
-        pattern = re.compile(
-            r"Valid announce for <" + re.escape(hash_hex) +
-            r"> ([0-9]+) hops? away"
-        )
-        matches = pattern.findall(result.stdout)
-        if matches:
-            # Use the most recent match; clamp to range [0, 6]
-            return min(max(int(matches[-1]), 0), 6)
+        hops = RNS.Transport.hops_to(destination_hash)
+        # 128 = PATHFINDER_M = no known path; fall back to 1
+        if hops >= 128:
+            return 1
+        return min(max(hops, 0), 6)
     except Exception as e:
-        print("[rns-map] _get_hops journal error: {}".format(e), flush=True)
+        print("[rns-map] _get_hops error: {}".format(e), flush=True)
     return 1
 
 # ---------------------------------------------------------------------------
