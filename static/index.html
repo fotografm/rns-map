@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RNS Live · vm150</title>
+<title>RNS Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;700&display=swap">
 <style>
@@ -120,7 +120,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 <div id="topbar">
   <div class="logo">
     <span class="logo-hex">⬡</span>
-    <div>RNS LIVE<span class="logo-sub">vm150 · RNode LoRa</span></div>
+    <div>RNS LIVE<span class="logo-sub" id="node-sub"></span></div>
   </div>
   <div class="vsep"></div>
   <button class="fbtn on" data-t="lxmf">LXMF</button>
@@ -168,6 +168,14 @@ const RING_NAMES = ['0 hops','1 hop','2 hops','3+ hops'];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let nodes = {};
+fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
+  window._nodeName = cfg.node_name || '';
+  document.title = 'RNS Live \u00b7 ' + window._nodeName;
+  var sub = document.getElementById('node-sub');
+  if (sub) sub.textContent = window._nodeName;
+  var cl = document.getElementById('center-label');
+  if (cl) cl.textContent = window._nodeName;
+}).catch(function(){});
 let filterOn = { lxmf:true, nomadnet:true, propagation:true, audio:true };
 let pktCount = 0;
 let CX=0, CY=0, R=0;
@@ -273,7 +281,7 @@ function drawRings() {
     filter:'url(#glow-ctr)'}));
   const cl = el('text',{x:CX,y:CY+23,fill:'rgba(255,255,255,0.7)',
     'font-family':'Share Tech Mono,monospace','font-size':'11','text-anchor':'middle'});
-  cl.textContent = 'vm150';
+  cl.textContent = window._nodeName || '\u2026'; cl.id = 'center-label';
   lyrRings.appendChild(cl);
 }
 
@@ -526,7 +534,7 @@ let wsRetry=1000;
 function connect(){
   const proto=location.protocol==='https:'?'wss':'ws';
   const ws=new WebSocket(proto+'://'+location.host+'/ws');
-  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';wsLbl.textContent='connected · vm150';};
+  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';wsLbl.textContent='connected' + (window._nodeName ? ' · '+window._nodeName : '');};
   ws.onclose=()=>{wsDot.className='';wsLbl.textContent='reconnecting…';
     setTimeout(connect,wsRetry=Math.min(wsRetry*1.5,15000));};
   ws.onerror=()=>{};
