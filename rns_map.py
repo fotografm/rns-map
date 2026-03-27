@@ -23,6 +23,8 @@ HTTP + WebSocket served on PORT 8085:
 
 import asyncio
 import json
+import os
+import socket
 import sqlite3
 import threading
 import time
@@ -41,6 +43,7 @@ STATIC_DIR = BASE_DIR / "static"            # ~/rns-map/static/
 DB_PATH    = BASE_DIR / "nodes.db"          # SQLite database file
 RNS_CONFIG = BASE_DIR / "reticulum-config"  # passed to rnsd, not used here
 PORT       = 8085                           # HTTP/WS listen port
+NODE_NAME  = os.environ.get("RNS_MAP_NODE_NAME", socket.gethostname())
 
 BUCKET_SECS = 60            # Activity history granularity: 1-minute buckets
 MAX_BUCKETS = 24 * 60       # Keep 24 hours of activity history
@@ -383,6 +386,14 @@ async def handle_reset(request):
     print("[rns-map] Node DB reset by user request", flush=True)
     return web.Response(text='{"ok":true}', content_type="application/json")
 
+async def handle_config(request):
+    """Return server-side configuration for the frontend."""
+    return web.Response(
+        text=json.dumps({"node_name": NODE_NAME}),
+        content_type="application/json",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -409,6 +420,7 @@ async def main():
     app.router.add_get ("/ws",       handle_ws)
     app.router.add_get ("/activity", handle_activity)
     app.router.add_post("/reset",    handle_reset)
+    app.router.add_get ("/api/config", handle_config)
 
     runner = web.AppRunner(app)
     await runner.setup()
