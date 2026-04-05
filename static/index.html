@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RNS Live</title>
+<title>RNS Live · raspi20</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;700&display=swap">
 <style>
@@ -27,9 +27,8 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 /* topbar */
 #topbar {
   position:fixed; inset:0 0 auto 0; z-index:100;
-  height:44px; background:var(--panel); border-bottom:1px solid var(--bdr);
+  height:44px; background:#060d18; border-bottom:1px solid var(--bdr);
   display:flex; align-items:center; gap:12px; padding:0 16px;
-  backdrop-filter:blur(12px);
 }
 .logo { font-family:var(--ui); font-weight:700; font-size:18px; color:var(--bright);
   letter-spacing:0.06em; display:flex; align-items:center; gap:8px; }
@@ -57,23 +56,24 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 .stat { font-size:11px; font-family:var(--ui); color:var(--muted); white-space:nowrap; }
 .stat b { color:#607d8b; font-weight:400; }
 
-/* main — desktop: map fills all except right panel */
+/* main */
 #main { position:fixed; top:44px; left:0; right:310px; bottom:20px;
   display:flex; align-items:center; justify-content:center; overflow:hidden; }
 #dartboard { width:100%; height:100%; }
 
-/* right panel — desktop: fixed sidebar */
+/* activity canvas: hidden */
+#activity-graph { display:none; }
+
+/* right panel */
 #panel { position:fixed; top:44px; right:0; bottom:20px; width:310px;
-  background:var(--panel); border-left:1px solid var(--bdr);
-  display:flex; flex-direction:column; backdrop-filter:blur(12px); }
+  background:#060d18; border-left:1px solid var(--bdr);
+  display:flex; flex-direction:column; }
 #phdr { padding:9px 13px 8px; border-bottom:1px solid var(--bdr);
   font-family:var(--ui); font-size:13px; font-weight:700;
   letter-spacing:0.16em; color:#ffe033; text-transform:uppercase;
   display:flex; align-items:center; gap:8px; }
 #phdr::before { content:''; width:5px; height:5px; border-radius:50%;
-  background:var(--lxmf); box-shadow:0 0 7px var(--lxmf);
-  animation:blink 1.1s ease-in-out infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  background:var(--lxmf); }
 #feed { flex:1; overflow-y:auto; overflow-x:hidden; padding:2px 0; }
 #feed::-webkit-scrollbar { width:2px; }
 #feed::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.07); }
@@ -94,8 +94,8 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
   background:rgba(2,5,10,0.92); border-top:1px solid var(--bdr);
   display:flex; align-items:center; gap:8px; padding:0 12px;
   font-size:10px; font-family:var(--ui); font-weight:300; letter-spacing:0.05em; }
-#wsdot { width:5px; height:5px; border-radius:50%; background:#f44336; flex-shrink:0; transition:all 0.3s; }
-#wsdot.ok { background:#4caf50; box-shadow:0 0 5px #4caf50; }
+#wsdot { width:5px; height:5px; border-radius:50%; background:#f44336; flex-shrink:0; }
+#wsdot.ok { background:#4caf50; }
 #wslbl { color:var(--muted); }
 
 /* tooltip */
@@ -107,7 +107,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 .tip-row { display:flex; justify-content:space-between; color:var(--muted); margin-top:4px; line-height:1.5; }
 .tip-row span:last-child { color:#78909c; text-align:right; max-width:130px; word-break:break-all; }
 
-/* ── Mobile layout ────────────────────────────────────────────────────────── */
+/* Mobile layout */
 @media (max-width: 600px) {
   #main  { right: 0; bottom: calc(35vh); }
   #panel { top: calc(65vh); left: 0; right: 0; width: 100%;
@@ -120,7 +120,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 <div id="topbar">
   <div class="logo">
     <span class="logo-hex">⬡</span>
-    <div>RNS LIVE<span class="logo-sub" id="node-sub"></span></div>
+    <div>RNS LIVE<span class="logo-sub">raspi20 · RNode LoRa</span></div>
   </div>
   <div class="vsep"></div>
   <button class="fbtn on" data-t="lxmf">LXMF</button>
@@ -137,6 +137,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     <button class="pbtn on" data-p="4">Storm</button>
   </div>
   <div class="vsep"></div>
+  <button onclick="window.open('http://'+location.hostname, '_blank')" style="background:none;border:1px solid rgba(100,200,100,0.35);font-family:var(--ui);font-weight:500;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:2px 10px;border-radius:2px;cursor:pointer;color:rgba(120,220,120,0.7);transition:all 0.15s" onmouseover="this.style.borderColor='rgba(100,200,100,0.8)';this.style.color='#78dc78'" onmouseout="this.style.borderColor='rgba(100,200,100,0.35)';this.style.color='rgba(120,220,120,0.7)'">Landing Page</button>
   <button id="reset-btn" style="background:none;border:1px solid rgba(255,80,80,0.35);font-family:var(--ui);font-weight:500;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:2px 10px;border-radius:2px;cursor:pointer;color:rgba(255,110,110,0.7);transition:all 0.15s" onmouseover="this.style.borderColor='rgba(255,80,80,0.8)';this.style.color='#ff6e6e'" onmouseout="this.style.borderColor='rgba(255,80,80,0.35)';this.style.color='rgba(255,110,110,0.7)'">Reset Nodes</button>
   <div class="spacer"></div>
   <span class="stat">nodes <b id="nn">0</b></span>
@@ -144,7 +145,10 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
   <span class="stat">announces <b id="na">0</b></span>
 </div>
 
-<div id="main"><svg id="dartboard" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<div id="main">
+  <svg id="dartboard" xmlns="http://www.w3.org/2000/svg"></svg>
+  <canvas id="activity-graph"></canvas>
+</div>
 
 <div id="panel">
   <div id="phdr">Live Announces</div>
@@ -160,27 +164,19 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 
 <script>
 // ── Palette ───────────────────────────────────────────────────────────────────
-const COL = { lxmf:'#00e5ff', nomadnet:'#69ff47', propagation:'#ff9100', audio:'#e040fb' };
+const COL   = { lxmf:'#00e5ff', nomadnet:'#69ff47', propagation:'#ff9100', audio:'#e040fb' };
 const LABEL = { lxmf:'LXMF', nomadnet:'Nomadnet', propagation:'Propagation', audio:'Audio' };
-const MAX_RING = 3;
-const RING_F = [0, 0.38, 0.66, 0.90];
-const RING_NAMES = ['0 hops','1 hop','2 hops','3+ hops'];
+const MAX_RING  = 3;
+const RING_F    = [0, 0.38, 0.66, 0.90];
+const RING_NAMES= ['0 hops','1 hop','2 hops','3+ hops'];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let nodes = {};
-fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
-  window._nodeName = cfg.node_name || '';
-  document.title = 'RNS Live \u00b7 ' + window._nodeName;
-  var sub = document.getElementById('node-sub');
-  if (sub) sub.textContent = window._nodeName;
-  var cl = document.getElementById('center-label');
-  if (cl) cl.textContent = window._nodeName;
-}).catch(function(){});
+let nodes    = {};
 let filterOn = { lxmf:true, nomadnet:true, propagation:true, audio:true };
 let pktCount = 0;
 let CX=0, CY=0, R=0;
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const svg = document.getElementById('dartboard');
+const svg    = document.getElementById('dartboard');
 let lyrRings, lyrLines, lyrAnims, lyrNodes, lyrLabels;
 
 // ── SVG helpers ───────────────────────────────────────────────────────────────
@@ -200,7 +196,6 @@ function initLayers() {
 }
 
 // ── Sizing ────────────────────────────────────────────────────────────────────
-// On mobile: dartboard is slightly larger (R multiplier 0.50 vs 0.46)
 function resize() {
   const m = document.getElementById('main');
   const W = m.clientWidth, H = m.clientHeight;
@@ -214,23 +209,25 @@ function resize() {
 }
 
 // ── Draw rings ────────────────────────────────────────────────────────────────
+// FIX: removed feGaussianBlur filter from defs (only glow-ctr kept, used on
+// center dot only). Removed SMIL animateTransform/animate pulse rings which
+// ran at 60fps indefinitely even when idle — replaced with two static rings.
 function drawRings() {
   while (lyrRings.firstChild) lyrRings.removeChild(lyrRings.firstChild);
 
   let defs = svg.querySelector('defs');
   if (!defs) { defs = el('defs',{}); svg.insertBefore(defs, svg.firstChild); }
+  // Only one shared filter for the center dot — not per-node
   defs.innerHTML =
     '<radialGradient id="bggrad" cx="50%" cy="50%" r="50%">' +
     '<stop offset="0%" stop-color="#0d1e2e" stop-opacity="1"/>' +
     '<stop offset="100%" stop-color="#04080f" stop-opacity="1"/>' +
-    '</radialGradient>' +
-    '<filter id="glow-ctr"><feGaussianBlur stdDeviation="6" result="b"/>' +
-    '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+    '</radialGradient>';
 
   lyrRings.appendChild(el('circle',{cx:CX,cy:CY,r:R*0.9,fill:'url(#bggrad)'}));
 
   for (let i = MAX_RING; i >= 1; i--) {
-    const r  = R * RING_F[i];
+    const r   = R * RING_F[i];
     const alt = i % 2 === 0;
     if (i > 1) {
       lyrRings.appendChild(el('circle',{cx:CX,cy:CY,r:r,
@@ -243,13 +240,15 @@ function drawRings() {
       'stroke-width': alt ? 1.2 : 0.8,
       'stroke-dasharray': alt ? '6 8' : '2 10'}));
 
-    const txt = el('text',{x:CX,y:CY-r-5,fill: alt ? 'rgba(0,229,255,0.85)' : 'rgba(255,255,255,0.65)',
+    const txt = el('text',{x:CX,y:CY-r-5,
+      fill: alt ? 'rgba(0,229,255,0.85)' : 'rgba(255,255,255,0.65)',
       'font-family':'Share Tech Mono,monospace','font-size':'11',
       'text-anchor':'middle','font-weight': alt ? 'bold' : 'normal'});
     txt.textContent = RING_NAMES[i];
     lyrRings.appendChild(txt);
 
-    const txt2 = el('text',{x:CX,y:CY+r+14,fill: alt ? 'rgba(0,229,255,0.85)' : 'rgba(255,255,255,0.65)',
+    const txt2 = el('text',{x:CX,y:CY+r+14,
+      fill: alt ? 'rgba(0,229,255,0.85)' : 'rgba(255,255,255,0.65)',
       'font-family':'Share Tech Mono,monospace','font-size':'11',
       'text-anchor':'middle','font-weight': alt ? 'bold' : 'normal'});
     txt2.textContent = RING_NAMES[i];
@@ -266,22 +265,19 @@ function drawRings() {
   td.textContent = 'Direct';
   lyrRings.appendChild(td);
 
-  for (let p=0;p<2;p++) {
-    const pr = el('circle',{cx:CX,cy:CY,r:14,fill:'none',
-      stroke:'rgba(255,255,255,0.7)','stroke-width':'1.5'});
-    const at = el('animateTransform',{attributeName:'transform',type:'scale',
-      from:'1 1 '+CX+' '+CY,to:'3.8 3.8 '+CX+' '+CY,
-      dur:'3s',begin:(p*1.5)+'s',repeatCount:'indefinite'});
-    const ao = el('animate',{attributeName:'opacity',from:'0.6',to:'0',
-      dur:'3s',begin:(p*1.5)+'s',repeatCount:'indefinite'});
-    pr.appendChild(at); pr.appendChild(ao);
-    lyrRings.appendChild(pr);
-  }
+  // FIX: replaced SMIL animateTransform pulse rings (infinite 60fps) with
+  // two static decorative rings — zero GPU cost at idle
+  lyrRings.appendChild(el('circle',{cx:CX,cy:CY,r:16,
+    fill:'none',stroke:'rgba(255,255,255,0.25)','stroke-width':'1'}));
+  lyrRings.appendChild(el('circle',{cx:CX,cy:CY,r:22,
+    fill:'none',stroke:'rgba(255,255,255,0.10)','stroke-width':'1'}));
+
+  // Center dot — plain white with stroke ring, no filter
   lyrRings.appendChild(el('circle',{cx:CX,cy:CY,r:8,fill:'#fff',
-    filter:'url(#glow-ctr)'}));
+    stroke:'rgba(255,255,255,0.4)','stroke-width':'3'}));
   const cl = el('text',{x:CX,y:CY+23,fill:'rgba(255,255,255,0.7)',
     'font-family':'Share Tech Mono,monospace','font-size':'11','text-anchor':'middle'});
-  cl.textContent = window._nodeName || '\u2026'; cl.id = 'center-label';
+  cl.textContent = 'raspi20';
   lyrRings.appendChild(cl);
 }
 
@@ -315,31 +311,24 @@ function nodeXY(n) {
 }
 
 // ── Draw nodes ────────────────────────────────────────────────────────────────
+// FIX: removed per-node feGaussianBlur SVG filter (one filter element per node,
+// forcing GPU compositing on every frame for every node). Replaced with CSS
+// drop-shadow on each node circle — composited once, not per-frame.
 function drawNodes() {
   while (lyrNodes.firstChild)  lyrNodes.removeChild(lyrNodes.firstChild);
   while (lyrLabels.firstChild) lyrLabels.removeChild(lyrLabels.firstChild);
-
-  let defs = svg.querySelector('defs');
-  Array.from(defs.querySelectorAll('filter[id^="gf-"]')).forEach(f=>f.remove());
 
   assignAngles();
 
   for (const [h,n] of Object.entries(nodes)) {
     if (!filterOn[n.app_type]) continue;
     const [x,y] = nodeXY(n);
-    const color = COL[n.app_type] || '#607d8b';
+    const color  = COL[n.app_type] || '#607d8b';
 
-    const fid = 'gf-'+h.substring(0,8);
-    const filt = el('filter',{id:fid,x:'-150%',y:'-150%',width:'400%',height:'400%'});
-    const blur = el('feGaussianBlur',{in:'SourceGraphic',stdDeviation:'4',result:'b'});
-    const mrg  = el('feMerge',{});
-    mrg.appendChild(el('feMergeNode',{in:'b'}));
-    mrg.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
-    filt.appendChild(blur); filt.appendChild(mrg);
-    defs.appendChild(filt);
-
+    // Simple stroke ring instead of CSS drop-shadow (drop-shadow forces compositing layer per node)
     const dot = el('circle',{cx:x,cy:y,r:5,fill:color,
-      filter:'url(#'+fid+')',style:'cursor:pointer'});
+      stroke:color,'stroke-width':'2','stroke-opacity':'0.4',
+      style:'cursor:pointer'});
     dot.addEventListener('mouseenter', e => showTip(n,e.clientX,e.clientY));
     dot.addEventListener('mouseleave', hideTip);
     dot.addEventListener('mousemove',  e => moveTip(e.clientX,e.clientY));
@@ -358,9 +347,9 @@ function drawNodes() {
 // ── Packet animations ─────────────────────────────────────────────────────────
 function animPacket(fromX, fromY, toX, toY, color) {
   const lines = [
-    {w:8, op:0.05},
-    {w:2.5,op:0.22},
-    {w:1,  op:0.8},
+    {w:8,  op:0.05},
+    {w:2.5, op:0.22},
+    {w:1,   op:0.8},
   ].map(s => {
     const l = el('line',{x1:fromX,y1:fromY,x2:toX,y2:toY,
       stroke:color,'stroke-width':s.w,opacity:s.op,'stroke-linecap':'round'});
@@ -380,7 +369,7 @@ function animPacket(fromX, fromY, toX, toY, color) {
     dot.setAttribute('cx', fromX+(toX-fromX)*ease);
     dot.setAttribute('cy', fromY+(toY-fromY)*ease);
     lines.forEach(l => l.e.setAttribute('opacity', l.base*(1-ease*0.75)));
-    if (p<1) {
+    if (p < 1) {
       requestAnimationFrame(step);
     } else {
       lines.forEach(l => lyrAnims.removeChild(l.e));
@@ -391,26 +380,35 @@ function animPacket(fromX, fromY, toX, toY, color) {
   })(t0);
 }
 
+// FIX: replaced setInterval(fn, 18) with requestAnimationFrame loop —
+// setInterval at 18ms stacked up multiple 55fps timers with every announce
 function pulseAt(x, y, color) {
-  let r=5, op=0.95;
-  const ring = el('circle',{cx:x,cy:y,r:r,fill:'none',
-    stroke:color,'stroke-width':'2',opacity:op});
+  const t0  = performance.now();
+  const DUR = 600;
+  const ring = el('circle',{cx:x,cy:y,r:5,fill:'none',
+    stroke:color,'stroke-width':'2',opacity:0.95});
   lyrAnims.appendChild(ring);
-  const id = setInterval(()=>{
-    r+=2.8; op-=0.055;
-    ring.setAttribute('r',r);
-    ring.setAttribute('opacity',Math.max(0,op));
-    if(op<=0){clearInterval(id);lyrAnims.removeChild(ring);}
-  },18);
+  (function step(now) {
+    const p  = Math.min((now-t0)/DUR, 1);
+    const r  = 5 + p * 22;
+    const op = 0.95 * (1-p);
+    ring.setAttribute('r', r);
+    ring.setAttribute('opacity', op);
+    if (p < 1) {
+      requestAnimationFrame(step);
+    } else {
+      if (ring.parentNode) lyrAnims.removeChild(ring);
+    }
+  })(t0);
 }
 
 let pingLevel = 4;
 const PING_CFG = [
-  { toCentre:false, peers:0,  cascade:0   },
-  { toCentre:true,  peers:1,  cascade:0   },
-  { toCentre:true,  peers:3,  cascade:0   },
-  { toCentre:true,  peers:6,  cascade:1   },
-  { toCentre:true,  peers:12, cascade:2   },
+  { toCentre:false, peers:0,  cascade:0 },
+  { toCentre:true,  peers:1,  cascade:0 },
+  { toCentre:true,  peers:3,  cascade:0 },
+  { toCentre:true,  peers:6,  cascade:1 },
+  { toCentre:true,  peers:12, cascade:2 },
 ];
 
 function randPeer(exclude) {
@@ -434,13 +432,13 @@ function fireAnnounce(n) {
     const peer = randPeer(n);
     if (!peer) break;
     const [px,py] = nodeXY(peer);
-    const delay = 80 + i*60;
+    const delay   = 80 + i*60;
     setTimeout(()=>{
       animPacket(fx, fy, px, py, color);
       for (let c=0; c<cfg.cascade; c++) {
         const next = randPeer(peer);
         if (!next) break;
-        const [nx,ny] = nodeXY(next);
+        const [nx,ny]   = nodeXY(next);
         const peerColor = COL[peer.app_type] || '#607d8b';
         setTimeout(()=>animPacket(px, py, nx, ny, peerColor), 350+c*200);
       }
@@ -449,7 +447,7 @@ function fireAnnounce(n) {
 }
 
 // ── Live feed ─────────────────────────────────────────────────────────────────
-const feedEl = document.getElementById('feed');
+const feedEl  = document.getElementById('feed');
 const MAX_FED = 80;
 
 function pushFeed(n, ts) {
@@ -458,8 +456,8 @@ function pushFeed(n, ts) {
   const hstr  = n.hops===0?'direct':n.hops+' hop'+(n.hops!==1?'s':'');
   const tstr  = new Date(ts*1000).toLocaleTimeString('en-GB',{hour12:false});
   const e = document.createElement('div');
-  e.className='fi fresh';
-  e.innerHTML=
+  e.className = 'fi fresh';
+  e.innerHTML =
     '<div class="fi-dot" style="background:'+color+';box-shadow:0 0 5px '+color+'"></div>'+
     '<div class="fi-body">'+
       '<div class="fi-name">'+esc(n.name)+'</div>'+
@@ -471,7 +469,7 @@ function pushFeed(n, ts) {
     '</div>';
   feedEl.prepend(e);
   setTimeout(()=>e.classList.remove('fresh'),400);
-  while(feedEl.children.length>MAX_FED) feedEl.removeChild(feedEl.lastChild);
+  while (feedEl.children.length > MAX_FED) feedEl.removeChild(feedEl.lastChild);
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -505,13 +503,13 @@ document.querySelectorAll('.fbtn').forEach(btn=>{
   });
 });
 
-// ── Reset button ─────────────────────────────────────────────────────────────
+// ── Reset button ──────────────────────────────────────────────────────────────
 document.getElementById('reset-btn').addEventListener('click', async ()=>{
   if (!confirm('Reset node database? Activity graph will not be affected.')) return;
   await fetch('/reset', {method:'POST'});
 });
 
-// ── Ping selector ────────────────────────────────────────────────────────────
+// ── Ping selector ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.pbtn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     pingLevel=parseInt(btn.dataset.p);
@@ -534,7 +532,7 @@ let wsRetry=1000;
 function connect(){
   const proto=location.protocol==='https:'?'wss':'ws';
   const ws=new WebSocket(proto+'://'+location.host+'/ws');
-  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';wsLbl.textContent='connected' + (window._nodeName ? ' · '+window._nodeName : '');};
+  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';wsLbl.textContent='connected · raspi20';};
   ws.onclose=()=>{wsDot.className='';wsLbl.textContent='reconnecting…';
     setTimeout(connect,wsRetry=Math.min(wsRetry*1.5,15000));};
   ws.onerror=()=>{};
@@ -544,7 +542,6 @@ function connect(){
       nodes={};
       msg.nodes.forEach(n=>nodes[n.hash]=n);
       redraw(); updateStats();
-      loadActivityFromServer();
     } else if(msg.type==='reset'){
       nodes={};
       redraw(); updateStats();
