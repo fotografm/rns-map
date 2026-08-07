@@ -362,8 +362,17 @@ async def handle_ws(request):
     return ws
 
 async def handle_index(request):
-    """Serve the main UI page."""
-    return web.FileResponse(STATIC_DIR / "index.html")
+    """Serve the main UI page.
+
+    no-store is deliberate: without it browsers heuristic-cache index.html and
+    keep serving a stale copy across restarts, so front-end fixes silently
+    appear not to work. The file is small and served over the LAN — there is
+    nothing to gain from caching it.
+    """
+    return web.FileResponse(
+        STATIC_DIR / "index.html",
+        headers={"Cache-Control": "no-store, must-revalidate"},
+    )
 
 async def handle_activity(request):
     """Return persisted activity buckets as JSON for the activity graph."""

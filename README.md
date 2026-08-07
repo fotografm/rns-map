@@ -220,6 +220,37 @@ The WebSocket connection to rns-map has dropped. This usually means rns-map
 crashed or was restarted. Check `journalctl -u rns-map -f`. The browser will
 reconnect automatically once the service is back up.
 
+**You edited `static/index.html` but the browser still shows the old page**
+Browsers heuristic-cache `index.html` and will serve the stale copy from disk
+cache without revalidating — even across a full browser restart. `rns_map.py`
+now sends `Cache-Control: no-store, must-revalidate` on the index to prevent
+this. If you are running a copy from before that change, force a hard reload
+with `Ctrl+Shift+R`, or update `handle_index` in `rns_map.py`:
+```python
+return web.FileResponse(
+    STATIC_DIR / "index.html",
+    headers={"Cache-Control": "no-store, must-revalidate"},
+)
+```
+Confirm the server is actually serving what you think it is:
+```bash
+curl -sI http://<your-machine-ip>:8085/ | grep -i cache-control
+```
+Worth ruling out first whenever a front-end fix appears to have no effect.
+
+**The tab consumes gigabytes of RAM and the desktop becomes unresponsive**
+Fixed as of commit `ed825ca`. Earlier copies of `static/index.html` leaked
+browser memory badly when left open under announce load — a per-node
+`feGaussianBlur` SVG filter rebuilt on every announce, `setInterval(fn,18)`
+pulse timers stacking up, SMIL ring animations running at 60fps while idle,
+and `backdrop-filter: blur(12px)` on the topbar and side panel re-blurring
+every frame. Firefox is hit hardest. Symptom is a single content process
+climbing by gigabytes per minute; on a machine without an early-OOM daemon
+this can exhaust RAM and swap and lock up the desktop before the kernel
+intervenes. Update to a current `static/index.html` — and note the caching
+pitfall above, since the stale-cache problem masks this fix specifically.
+Watch it in Firefox via `about:processes`.
+
 ---
 
 ## Dependencies (pinned)
