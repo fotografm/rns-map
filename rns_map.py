@@ -44,6 +44,18 @@ DB_PATH    = BASE_DIR / "nodes.db"          # SQLite database file
 RNS_CONFIG = BASE_DIR / "reticulum-config"  # passed to rnsd, not used here
 PORT       = 8085                           # HTTP/WS listen port
 NODE_NAME  = os.environ.get("RNS_MAP_NODE_NAME", socket.gethostname())
+NODE_SUB   = os.environ.get("RNS_MAP_NODE_SUB", "")   # e.g. "RNode LoRa", "Munich"
+
+
+def _ping_level():
+    """Default ping density (0-4), overridable per node via the environment."""
+    try:
+        return min(max(int(os.environ.get("RNS_MAP_PING_LEVEL", "4")), 0), 4)
+    except ValueError:
+        return 4
+
+
+PING_LEVEL = _ping_level()
 
 BUCKET_SECS = 60            # Activity history granularity: 1-minute buckets
 MAX_BUCKETS = 24 * 60       # Keep 24 hours of activity history
@@ -396,9 +408,17 @@ async def handle_reset(request):
     return web.Response(text='{"ok":true}', content_type="application/json")
 
 async def handle_config(request):
-    """Return server-side configuration for the frontend."""
+    """Return server-side configuration for the frontend.
+
+    The frontend renders every node-identifying string from this, so the same
+    static/index.html can be deployed to any node without hand-editing it.
+    """
     return web.Response(
-        text=json.dumps({"node_name": NODE_NAME}),
+        text=json.dumps({
+            "node_name":  NODE_NAME,
+            "node_sub":   NODE_SUB,
+            "ping_level": PING_LEVEL,
+        }),
         content_type="application/json",
         headers={"Access-Control-Allow-Origin": "*"},
     )

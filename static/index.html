@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RNS Live · raspi20</title>
+<title>RNS Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;700&display=swap">
 <style>
@@ -120,7 +120,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 <div id="topbar">
   <div class="logo">
     <span class="logo-hex">⬡</span>
-    <div>RNS LIVE<span class="logo-sub">raspi20 · RNode LoRa</span></div>
+    <div>RNS LIVE<span class="logo-sub" id="node-sub"></span></div>
   </div>
   <div class="vsep"></div>
   <button class="fbtn on" data-t="lxmf">LXMF</button>
@@ -277,7 +277,8 @@ function drawRings() {
     stroke:'rgba(255,255,255,0.4)','stroke-width':'3'}));
   const cl = el('text',{x:CX,y:CY+23,fill:'rgba(255,255,255,0.7)',
     'font-family':'Share Tech Mono,monospace','font-size':'11','text-anchor':'middle'});
-  cl.textContent = 'raspi20';
+  cl.id = 'center-label';
+  cl.textContent = window._nodeName || '…';
   lyrRings.appendChild(cl);
 }
 
@@ -532,7 +533,8 @@ let wsRetry=1000;
 function connect(){
   const proto=location.protocol==='https:'?'wss':'ws';
   const ws=new WebSocket(proto+'://'+location.host+'/ws');
-  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';wsLbl.textContent='connected · raspi20';};
+  ws.onopen=()=>{wsRetry=1000;wsDot.className='ok';
+    wsLbl.textContent='connected'+(window._nodeName?' · '+window._nodeName:'');};
   ws.onclose=()=>{wsDot.className='';wsLbl.textContent='reconnecting…';
     setTimeout(connect,wsRetry=Math.min(wsRetry*1.5,15000));};
   ws.onerror=()=>{};
@@ -567,6 +569,35 @@ function timeAgo(ts){
   if(s<5)return'just now';if(s<60)return s+'s ago';
   if(s<3600)return Math.floor(s/60)+'m ago';return Math.floor(s/3600)+'h ago';
 }
+
+// ── Node identity ─────────────────────────────────────────────────────────────
+// Every node-identifying string comes from /api/config so this file can be
+// deployed unmodified to any node — no hand-edited identity tokens.
+// If the endpoint is missing (rns_map.py older than the /api/config commit)
+// we fall back to location.hostname rather than rendering a nameless UI.
+function applyIdentity(cfg) {
+  window._nodeName = cfg.node_name || '';
+  document.title = window._nodeName ? 'RNS Live · ' + window._nodeName : 'RNS Live';
+  const cl = document.getElementById('center-label');
+  if (cl) cl.textContent = window._nodeName || '…';
+  if (wsDot.className === 'ok') {
+    wsLbl.textContent = 'connected' + (window._nodeName ? ' · ' + window._nodeName : '');
+  }
+  const sub = document.getElementById('node-sub');
+  if (sub) sub.textContent = cfg.node_sub
+    ? window._nodeName + ' · ' + cfg.node_sub
+    : window._nodeName;
+  if (typeof cfg.ping_level === 'number') {
+    pingLevel = Math.min(Math.max(cfg.ping_level, 0), PING_CFG.length - 1);
+    document.querySelectorAll('.pbtn').forEach(b =>
+      b.classList.toggle('on', parseInt(b.dataset.p) === pingLevel));
+  }
+}
+
+fetch('/api/config')
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(applyIdentity)
+  .catch(() => applyIdentity({ node_name: location.hostname }));
 
 window.addEventListener('resize',resize);
 resize();
