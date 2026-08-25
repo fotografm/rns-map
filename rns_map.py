@@ -289,24 +289,28 @@ def _process(app_type: str, destination_hash: bytes, announced_identity,
 class _LXMFDeliveryHandler:
     """Handles LXMF message delivery destination announces."""
     aspect_filter = "lxmf.delivery"
+    receive_path_responses = True
     def received_announce(self, destination_hash, announced_identity, app_data, **kwargs):
         _process("lxmf", destination_hash, announced_identity, app_data, kwargs)
 
 class _LXMFPropHandler:
     """Handles LXMF propagation node announces."""
     aspect_filter = "lxmf.propagation"
+    receive_path_responses = True
     def received_announce(self, destination_hash, announced_identity, app_data, **kwargs):
         _process("propagation", destination_hash, announced_identity, app_data, kwargs)
 
 class _NomadHandler:
     """Handles Nomadnet node announces."""
     aspect_filter = "nomadnetwork.node"
+    receive_path_responses = True
     def received_announce(self, destination_hash, announced_identity, app_data, **kwargs):
         _process("nomadnet", destination_hash, announced_identity, app_data, kwargs)
 
 class _AudioHandler:
     """Handles audio call destination announces."""
     aspect_filter = "call.audio"
+    receive_path_responses = True
     def received_announce(self, destination_hash, announced_identity, app_data, **kwargs):
         _process("audio", destination_hash, announced_identity, app_data, kwargs)
 
