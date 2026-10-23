@@ -18,7 +18,17 @@ HTTP + WebSocket served on PORT 8085:
   GET  /          -> static/index.html  (the dartboard UI)
   GET  /ws        -> WebSocket upgrade  (live announce events)
   GET  /activity  -> JSON array of per-minute activity buckets (last 24h)
+  GET  /api/nodes -> JSON list of shown nodes (for NomadNet pages, scripts)
   POST /reset     -> wipe nodes table and broadcast reset event to all clients
+
+Interface filter
+----------------
+RNS_MAP_IFACE_INCLUDE / RNS_MAP_IFACE_EXCLUDE (comma-separated substrings) are
+matched against the interface rnsd's path table holds for each announced
+destination, e.g. "RNodeInterface[RNode LoRa Interface]". Unset = show every
+announce, as before. RNS_MAP_IFACE_INCLUDE=RNodeInterface gives a LoRa-only
+map on a node that also has TCP links. Run a second copy with its own
+RNS_MAP_PORT and RNS_MAP_DB to map a different set of interfaces.
 """
 
 import asyncio
@@ -40,11 +50,26 @@ import aiohttp
 
 BASE_DIR   = Path(__file__).parent          # ~/rns-map/
 STATIC_DIR = BASE_DIR / "static"            # ~/rns-map/static/
-DB_PATH    = BASE_DIR / "nodes.db"          # SQLite database file
+DB_PATH    = Path(os.environ.get("RNS_MAP_DB", BASE_DIR / "nodes.db"))  # SQLite database file
 RNS_CONFIG = BASE_DIR / "reticulum-config"  # passed to rnsd, not used here
-PORT       = 8085                           # HTTP/WS listen port
+PORT       = int(os.environ.get("RNS_MAP_PORT", "8085"))  # HTTP/WS listen port
 NODE_NAME  = os.environ.get("RNS_MAP_NODE_NAME", socket.gethostname())
 NODE_SUB   = os.environ.get("RNS_MAP_NODE_SUB", "")   # e.g. "RNode LoRa", "Munich"
+
+
+def _csv_env(name):
+    """Comma-separated environment variable -> list of non-empty strings."""
+    return [s.strip() for s in os.environ.get(name, "").split(",") if s.strip()]
+
+
+IFACE_INCLUDE = _csv_env("RNS_MAP_IFACE_INCLUDE")  # e.g. ["RNodeInterface"]
+IFACE_EXCLUDE = _csv_env("RNS_MAP_IFACE_EXCLUDE")  # e.g. ["ct167 Relay"]
+FILTERING     = bool(IFACE_INCLUDE or IFACE_EXCLUDE)
+
+# rnsd hands an announce to its local clients BEFORE it writes the path table
+# entry, so a lookup straight away can miss a new destination. Retry at these
+# delays (seconds) before giving up on it.
+PATH_RETRY_DELAYS = (0.5, 2, 5)
 
 
 def _ping_level():
@@ -243,23 +268,75 @@ def _get_hops(destination_hash: bytes, announce_packet_hash=None) -> int:
     return 1
 
 # ---------------------------------------------------------------------------
+# Interface filter
+# ---------------------------------------------------------------------------
+
+def _path_entry(destination_hash: bytes):
+    """
+    Return rnsd's path table entry for a destination, or None.
+
+    Asked over the shared-instance RPC, because a client's own Transport only
+    sees its LocalInterface, never the interface rnsd heard the announce on.
+    """
+    for delay in (0,) + PATH_RETRY_DELAYS:
+        if delay:
+            time.sleep(delay)
+        try:
+            for entry in RNS.Reticulum.get_instance().get_path_table():
+                if entry["hash"] == destination_hash:
+                    return entry
+        except Exception as e:
+            print("[rns-map] path table error: {}".format(e), flush=True)
+            return None
+    return None
+
+def _iface_allowed(interface: str) -> bool:
+    """Apply RNS_MAP_IFACE_INCLUDE / RNS_MAP_IFACE_EXCLUDE to an interface name."""
+    if IFACE_INCLUDE and not any(s in interface for s in IFACE_INCLUDE):
+        return False
+    if any(s in interface for s in IFACE_EXCLUDE):
+        return False
+    return True
+
+# ---------------------------------------------------------------------------
 # Core announce processor
 # ---------------------------------------------------------------------------
 
 def _process(app_type: str, destination_hash: bytes, announced_identity,
              app_data, kwargs):
     """
-    Called by each announce handler. Builds a node dict, updates the
-    in-memory cache and SQLite, then fires a WebSocket broadcast.
-    Runs on the RNS announce thread (not the asyncio loop thread).
+    Called by each announce handler. With an interface filter set, the work
+    moves to a background thread, because the path table lookup may have to
+    wait for rnsd to write the entry.
+    """
+    if FILTERING:
+        threading.Thread(target=_process_node, daemon=True,
+                         args=(app_type, destination_hash, app_data, kwargs)).start()
+    else:
+        _process_node(app_type, destination_hash, app_data, kwargs)
+
+def _process_node(app_type: str, destination_hash: bytes, app_data, kwargs):
+    """
+    Builds a node dict, updates the in-memory cache and SQLite, then fires a
+    WebSocket broadcast. Runs on an RNS or worker thread (not the asyncio
+    loop thread).
     """
     global _announce_count
     try:
         hash_hex  = destination_hash.hex()
         now       = time.time()
         name      = _parse_name(app_data, hash_hex[:12])
-        hops      = min(max(_get_hops(destination_hash,
-                            kwargs.get("announce_packet_hash")), 0), 6)
+
+        if FILTERING:
+            entry = _path_entry(destination_hash)
+            if entry is None or not _iface_allowed(entry["interface"]):
+                print("[rns-map] skip {} \"{}\" via {}".format(
+                    app_type, name, entry["interface"] if entry else "no path"), flush=True)
+                return
+            hops = min(max(entry["hops"], 0), 6)
+        else:
+            hops = min(max(_get_hops(destination_hash,
+                           kwargs.get("announce_packet_hash")), 0), 6)
         _announce_count += 1
 
         node = {
@@ -423,6 +500,21 @@ async def handle_config(request):
         headers={"Access-Control-Allow-Origin": "*"},
     )
 
+async def handle_nodes(request):
+    """Return every node on the map, nearest first, for NomadNet pages and scripts."""
+    nodes = sorted(_nodes.values(), key=lambda n: (n["hops"], -n["last_seen"]))
+    return web.Response(
+        text=json.dumps({
+            "node_name":     NODE_NAME,
+            "node_sub":      NODE_SUB,
+            "iface_include": IFACE_INCLUDE,
+            "iface_exclude": IFACE_EXCLUDE,
+            "nodes":         nodes,
+        }),
+        content_type="application/json",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -434,6 +526,9 @@ async def main():
     db_init()
     db_load()
     print("[rns-map] Loaded {} nodes from DB".format(len(_nodes)), flush=True)
+    if FILTERING:
+        print("[rns-map] Interface filter: include={} exclude={}".format(
+            IFACE_INCLUDE, IFACE_EXCLUDE), flush=True)
 
     # Attach to the running rnsd as a shared-instance client.
     # RNS.Reticulum() with no arguments auto-discovers the rnsd socket.
@@ -450,6 +545,7 @@ async def main():
     app.router.add_get ("/activity", handle_activity)
     app.router.add_post("/reset",    handle_reset)
     app.router.add_get ("/api/config", handle_config)
+    app.router.add_get ("/api/nodes",  handle_nodes)
 
     runner = web.AppRunner(app)
     await runner.setup()

@@ -1,0 +1,25 @@
+[Unit]
+Description=RNS Live Network Map (vm169, LoRa only via MeshChat shared instance)
+After=network-online.target reticulum-meshchat.service
+Wants=network-online.target reticulum-meshchat.service
+# MeshChat owns the RNode and the shared RNS instance; restart with it.
+PartOf=reticulum-meshchat.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/rns-map
+Environment=PYTHONUNBUFFERED=1
+# Only nodes whose path goes out through the RNode: LoRa only, no ct167 relay.
+Environment="RNS_MAP_IFACE_INCLUDE=RNodeInterface"
+Environment="RNS_MAP_NODE_SUB=RNode LoRa only"
+# Wait for MeshChat's shared instance, else RNS would start a standalone instance.
+ExecStartPre=/bin/sh -c 'for i in $(seq 90); do ss -xl | grep -q "@rns/default " && exit 0; sleep 1; done; exit 1'
+ExecStart=/home/user/rns-map/venv/bin/python rns_map.py
+Restart=always
+RestartSec=15
+SyslogIdentifier=rns-map
+
+[Install]
+WantedBy=multi-user.target reticulum-meshchat.service

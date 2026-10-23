@@ -281,7 +281,38 @@ journalctl -u rns-map -f
 | GET    | `/`         | Serves the web UI (index.html)     |
 | GET    | `/ws`       | WebSocket — live announce events   |
 | GET    | `/activity` | JSON: per-minute announce counts   |
+| GET    | `/api/config` | JSON: node name, subtitle, ping level |
+| GET    | `/api/nodes`  | JSON: every node on the map, nearest first |
 | POST   | `/reset`    | Wipe node database, reset the map  |
+
+---
+
+## Showing only some interfaces
+
+On a node with more than one interface (for example an RNode plus a TCP
+link to a relay), you can limit the map to nodes reached through certain
+interfaces. Set these in the service file:
+
+| Variable | Meaning |
+|----------|---------|
+| `RNS_MAP_IFACE_INCLUDE` | Comma-separated text. Only nodes whose path uses an interface containing one of these are shown. |
+| `RNS_MAP_IFACE_EXCLUDE` | Comma-separated text. Nodes whose path uses an interface containing one of these are hidden. |
+| `RNS_MAP_PORT` | Web port, default `8085`. |
+| `RNS_MAP_DB` | Database file, default `nodes.db` next to `rns_map.py`. |
+
+The text is matched against the interface name rnsd shows in `rnpath -t`,
+e.g. `RNodeInterface[RNode LoRa Interface]`. A LoRa-only map:
+
+```
+Environment="RNS_MAP_IFACE_INCLUDE=RNodeInterface"
+```
+
+For a second map of different interfaces, run another copy of the service
+with its own `RNS_MAP_PORT` and `RNS_MAP_DB`.
+
+`deploy/vm169/` holds a complete example: a LoRa-only map on a MeshChat
+node, plus `map.mu`, a NomadNet page that lists the same nodes from
+`/api/nodes`.
 
 ---
 
