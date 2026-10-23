@@ -1,0 +1,28 @@
+[Unit]
+Description=RNS Live Network Map (vm169, t6-relay: nodes via ct167 4242/4243, no LoRa)
+After=network-online.target reticulum-meshchat.service
+Wants=network-online.target reticulum-meshchat.service
+# MeshChat owns the RNode and the shared RNS instance; restart with it.
+PartOf=reticulum-meshchat.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/rns-map
+Environment=PYTHONUNBUFFERED=1
+# Only nodes reached through the ct167 relay link: friends (4242) and LAN
+# test clients (4243). Everything from ct167 arrives on this one interface.
+Environment="RNS_MAP_IFACE_INCLUDE=ct167 Relay"
+Environment="RNS_MAP_NODE_SUB=t6-relay (ct167)"
+Environment="RNS_MAP_PORT=8086"
+Environment="RNS_MAP_DB=/home/user/rns-map/nodes-relay.db"
+# Wait for MeshChat's shared instance, else RNS would start a standalone instance.
+ExecStartPre=/bin/sh -c 'for i in $(seq 90); do ss -xl | grep -q "@rns/default " && exit 0; sleep 1; done; exit 1'
+ExecStart=/home/user/rns-map/venv/bin/python rns_map.py
+Restart=always
+RestartSec=15
+SyslogIdentifier=rns-map-relay
+
+[Install]
+WantedBy=multi-user.target reticulum-meshchat.service
